@@ -27,15 +27,11 @@ jobs:
       - name: Decrypt database
         env:
           DB_ENCRYPT_KEY: ${{ secrets.DB_ENCRYPT_KEY }}
-        run: |
+        run: >
           if [ -f bot.db.enc ] && [ -n "$DB_ENCRYPT_KEY" ]; then
-            python - <<'EOF'
-            import os
-            from cryptography.fernet import Fernet
-            key = os.environ["DB_ENCRYPT_KEY"].strip().encode()
-            open("bot.db", "wb").write(Fernet(key).decrypt(open("bot.db.enc", "rb").read()))
-            EOF
-            echo "database decrypted"
+          python -c 'import os; from cryptography.fernet import Fernet;
+          open("bot.db", "wb").write(Fernet(os.environ["DB_ENCRYPT_KEY"].strip().encode()).decrypt(open("bot.db.enc", "rb").read()))'
+          && echo "database decrypted" || exit 1;
           fi
 
       - name: Run bot
@@ -51,23 +47,19 @@ jobs:
         if: always()
         env:
           DB_ENCRYPT_KEY: ${{ secrets.DB_ENCRYPT_KEY }}
-        run: |
+        run: >
           if [ -f bot.db ] && [ -n "$DB_ENCRYPT_KEY" ]; then
-            python - <<'EOF'
-            import os, sqlite3
-            from cryptography.fernet import Fernet
-            c = sqlite3.connect("bot.db")
-            c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            c.close()
-            key = os.environ["DB_ENCRYPT_KEY"].strip().encode()
-            data = open("bot.db", "rb").read()
-            open("bot.db.enc", "wb").write(Fernet(key).encrypt(data))
-            EOF
-            rm -f bot.db bot.db-wal bot.db-shm
-            git config user.name "drill-bot-db"
-            git config user.email "actions@users.noreply.github.com"
-            git rm --cached bot.db -q 2>/dev/null || true
-            git add bot.db.enc
-            git commit -m "chore(db): daily stats update (encrypted) [skip ci]" || echo "nothing to commit"
-            git push || echo "push failed"
+          python -c 'import os, sqlite3; from cryptography.fernet import Fernet;
+          c = sqlite3.connect("bot.db");
+          c.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+          c.close();
+          open("bot.db.enc", "wb").write(Fernet(os.environ["DB_ENCRYPT_KEY"].strip().encode()).encrypt(open("bot.db", "rb").read()))'
+          && rm -f bot.db bot.db-wal bot.db-shm
+          && git config user.name "drill-bot-db"
+          && git config user.email "actions@users.noreply.github.com"
+          && (git rm --cached bot.db -q 2>/dev/null || true)
+          && git add bot.db.enc
+          && (git commit -m "chore(db): daily stats update (encrypted) [skip ci]" || echo "nothing to commit")
+          && (git push || echo "push failed")
+          || exit 1;
           fi
