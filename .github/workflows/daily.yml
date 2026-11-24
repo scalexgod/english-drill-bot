@@ -9,6 +9,9 @@ concurrency:
   group: drill-bot
   cancel-in-progress: false
 
+permissions:
+  contents: write # GITHUB_TOKEN должен уметь пушить коммит с шифрованной базой
+
 jobs:
   bot:
     runs-on: ubuntu-latest
