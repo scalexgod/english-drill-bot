@@ -1,0 +1,6 @@
+aiogram>=3.15,<4
+apscheduler>=3.10,<4
+openai>=1.50,<2
+python-dotenv>=1.0,<2
+cryptography>=42
+tzdata>=2024.1
